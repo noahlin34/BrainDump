@@ -1,24 +1,22 @@
-//
-//  ContentView.swift
-//  BrainDump
-//
-//  Created by Noah Lin  on 2026-02-13.
-//
-
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+    @Environment(AppState.self) private var appState
+    @Environment(NoteStore.self) private var noteStore
 
-#Preview {
-    ContentView()
+    var body: some View {
+        Group {
+            switch appState.currentMode {
+            case .capture:
+                CaptureView()
+            case .review:
+                ReviewView()
+            case .savedNotes:
+                SavedNotesView()
+            case .editNote(let note):
+                NoteEditorView(note: note)
+            }
+        }
+        .frame(minWidth: 360, minHeight: 300)
+    }
 }
