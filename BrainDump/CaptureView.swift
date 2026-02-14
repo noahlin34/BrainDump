@@ -7,20 +7,22 @@ struct CaptureView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TextEditor(text: $text)
-                .font(.body)
-                .focused($isFocused)
-                .scrollContentBackground(.hidden)
-                .padding(16)
-                .overlay(alignment: .topLeading) {
-                    if text.isEmpty {
-                        Text("What's on your mind?")
-                            .foregroundStyle(.tertiary)
-                            .padding(.top, 24)
-                            .padding(.leading, 21)
-                            .allowsHitTesting(false)
-                    }
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $text)
+                    .font(.body)
+                    .focused($isFocused)
+                    .scrollContentBackground(.hidden)
+
+                if text.isEmpty {
+                    Text("What's on your mind?")
+                        .font(.body)
+                        .foregroundStyle(.tertiary)
+                        .padding(.leading, 5)
+                        .padding(.top, 1)
+                        .allowsHitTesting(false)
                 }
+            }
+            .padding(16)
 
             Divider()
 

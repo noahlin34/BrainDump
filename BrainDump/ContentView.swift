@@ -15,6 +15,8 @@ struct ContentView: View {
                 SavedNotesView()
             case .editNote(let note):
                 NoteEditorView(note: note)
+            case .tutorial:
+                TutorialView()
             }
         }
         .frame(minWidth: 360, minHeight: 300)

@@ -11,13 +11,16 @@ class FloatingPanel: NSPanel {
         )
 
         level = .floating
-        isMovableByWindowBackground = true
+        isMovableByWindowBackground = false
         titlebarAppearsTransparent = true
         titleVisibility = .hidden
         backgroundColor = .windowBackgroundColor
         isReleasedWhenClosed = false
         animationBehavior = .utilityWindow
         hidesOnDeactivate = false
+        standardWindowButton(.closeButton)?.isHidden = true
+        standardWindowButton(.miniaturizeButton)?.isHidden = true
+        standardWindowButton(.zoomButton)?.isHidden = true
 
         let hostingView = NSHostingView(rootView: contentView)
         self.contentView = hostingView

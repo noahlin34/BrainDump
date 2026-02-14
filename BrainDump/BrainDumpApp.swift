@@ -25,6 +25,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupMenuBar()
         setupPanel()
         registerGlobalHotKey()
+
+        if !UserDefaults.standard.bool(forKey: "hasSeenTutorial") {
+            showPanel(mode: .tutorial)
+        }
     }
 
     // MARK: - Menu Bar
@@ -46,6 +50,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let savedItem = NSMenuItem(title: "Saved Notes", action: #selector(openSaved), keyEquivalent: "")
         menu.addItem(savedItem)
 
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Show Tutorial", action: #selector(openTutorial), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "About BrainDump", action: #selector(showAbout), keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit BrainDump", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
@@ -81,8 +88,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         showPanel(mode: .review)
     }
 
+    @objc private func showAbout() {
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        NSApplication.shared.orderFrontStandardAboutPanel(nil)
+    }
+
     @objc private func openSaved() {
         showPanel(mode: .savedNotes)
+    }
+
+    @objc private func openTutorial() {
+        showPanel(mode: .tutorial)
     }
 
     func toggleCapture() {
