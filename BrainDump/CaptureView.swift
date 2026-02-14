@@ -3,6 +3,7 @@ import SwiftUI
 
 struct CaptureView: View {
     @Environment(NoteStore.self) private var noteStore
+    @Environment(KeybindStore.self) private var keybindStore
     @State private var text = ""
     @State private var isPreviewMode: Bool = false
     @State private var keyMonitor: Any?
@@ -47,7 +48,7 @@ struct CaptureView: View {
             Divider()
 
             HStack {
-                Text("⌘ Enter to save")
+                Text("\(keybindStore.binding(for: .saveNote).displayString) to save")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                 Spacer()
@@ -56,7 +57,6 @@ struct CaptureView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .keyboardShortcut(.return, modifiers: .command)
             }
             .padding(12)
         }
@@ -79,13 +79,13 @@ struct CaptureView: View {
                 Image(systemName: "bold")
                     .frame(width: 28, height: 24)
             }
-            .help("Bold (⌘B)")
+            .help("Bold (\(keybindStore.binding(for: .bold).displayString))")
 
             Button { applyMarkdown(prefix: "_", suffix: "_") } label: {
                 Image(systemName: "italic")
                     .frame(width: 28, height: 24)
             }
-            .help("Italic (⌘I)")
+            .help("Italic (\(keybindStore.binding(for: .italic).displayString))")
 
             Button { applyMarkdown(prefix: "# ", suffix: "") } label: {
                 Image(systemName: "number")
@@ -173,15 +173,23 @@ struct CaptureView: View {
 
     private func installKeyMonitor() {
         let holder = self.holder
+        let store = self.keybindStore
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
-                  let chars = event.charactersIgnoringModifiers else { return event }
+            // Save shortcut
+            if store.matches(event: event, action: .saveNote) {
+                save()
+                return nil
+            }
+
+            // Bold / Italic
             let prefix: String
             let suffix: String
-            switch chars {
-            case "b": prefix = "**"; suffix = "**"
-            case "i": prefix = "_"; suffix = "_"
-            default: return event
+            if store.matches(event: event, action: .bold) {
+                prefix = "**"; suffix = "**"
+            } else if store.matches(event: event, action: .italic) {
+                prefix = "_"; suffix = "_"
+            } else {
+                return event
             }
             guard let tv = holder.textView else { return event }
             let range = tv.selectedRange()

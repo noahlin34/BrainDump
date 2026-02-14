@@ -17,6 +17,8 @@ struct ContentView: View {
                 NoteEditorView(note: note)
             case .tutorial:
                 TutorialView()
+            case .settings:
+                SettingsView()
             }
         }
         .frame(minWidth: 360, minHeight: 300)

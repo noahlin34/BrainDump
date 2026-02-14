@@ -20,6 +20,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     let appState = AppState()
     let noteStore = NoteStore()
+    let keybindStore = KeybindStore()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenuBar()
@@ -53,6 +54,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Show Tutorial", action: #selector(openTutorial), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "About BrainDump", action: #selector(showAbout), keyEquivalent: ""))
+
+        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.keyEquivalentModifierMask = [.command]
+        menu.addItem(settingsItem)
+
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit BrainDump", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
@@ -66,6 +72,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let contentView = ContentView()
             .environment(appState)
             .environment(noteStore)
+            .environment(keybindStore)
 
         panel = FloatingPanel(contentView: contentView)
         panel.delegate = self
@@ -101,6 +108,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         showPanel(mode: .tutorial)
     }
 
+    @objc private func openSettings() {
+        showPanel(mode: .settings)
+    }
+
     func toggleCapture() {
         if panel.isVisible {
             panel.close()
@@ -110,17 +121,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // MARK: - Global Hot Key (Ctrl+Shift+D)
+    // MARK: - Global Hot Key
 
     private func registerGlobalHotKey() {
-        let requiredFlags: NSEvent.ModifierFlags = [.control, .shift]
-
         let handler: (NSEvent) -> Bool = { [weak self] event in
-            guard event.keyCode == UInt16(kVK_ANSI_D),
-                  event.modifierFlags.intersection(.deviceIndependentFlagsMask) == requiredFlags else {
+            guard let self, self.keybindStore.matches(event: event, action: .globalCapture) else {
                 return false
             }
-            self?.toggleCapture()
+            self.toggleCapture()
             return true
         }
 
@@ -148,6 +156,13 @@ extension AppDelegate: NSMenuDelegate {
         let inboxCount = noteStore.inboxNotes.count
         if let reviewItem = menu.item(withTitle: "Review Notes") ?? menu.items.first(where: { $0.action == #selector(openReview) }) {
             reviewItem.title = inboxCount > 0 ? "Review Notes (\(inboxCount))" : "Review Notes"
+        }
+
+        // Sync "New Brain Dump" key equivalent from keybind store
+        if let newDumpItem = menu.items.first(where: { $0.action == #selector(openCapture) }) {
+            let binding = keybindStore.binding(for: .newBrainDump)
+            newDumpItem.keyEquivalent = binding.characters
+            newDumpItem.keyEquivalentModifierMask = binding.nsModifierFlags
         }
     }
 }

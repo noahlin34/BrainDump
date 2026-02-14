@@ -6,6 +6,7 @@ enum AppMode: Equatable {
     case savedNotes
     case editNote(Note)
     case tutorial
+    case settings
 }
 
 @Observable
