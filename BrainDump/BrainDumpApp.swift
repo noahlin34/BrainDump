@@ -1,5 +1,5 @@
 import SwiftUI
-import Carbon
+import Carbon.HIToolbox
 
 @main
 struct BrainDumpApp: App {
@@ -15,8 +15,8 @@ struct BrainDumpApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var panel: FloatingPanel!
-    private var hotKeyRef: EventHotKeyRef?
-    private var eventHandlerRef: EventHandlerRef?
+    private var globalMonitor: Any?
+    private var localMonitor: Any?
 
     let appState = AppState()
     let noteStore = NoteStore()
@@ -113,40 +113,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Global Hot Key (Ctrl+Shift+D)
 
     private func registerGlobalHotKey() {
-        var eventType = EventTypeSpec(
-            eventClass: OSType(kEventClassKeyboard),
-            eventKind: UInt32(kEventHotKeyPressed)
-        )
+        let requiredFlags: NSEvent.ModifierFlags = [.control, .shift]
 
-        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+        let handler: (NSEvent) -> Bool = { [weak self] event in
+            guard event.keyCode == UInt16(kVK_ANSI_D),
+                  event.modifierFlags.intersection(.deviceIndependentFlagsMask) == requiredFlags else {
+                return false
+            }
+            self?.toggleCapture()
+            return true
+        }
 
-        InstallEventHandler(
-            GetApplicationEventTarget(),
-            { (_: EventHandlerCallRef?, _: EventRef?, userData: UnsafeMutableRawPointer?) -> OSStatus in
-                guard let userData else { return OSStatus(eventNotHandledErr) }
-                let delegate = Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
-                delegate.toggleCapture()
-                return noErr
-            },
-            1,
-            &eventType,
-            selfPtr,
-            &eventHandlerRef
-        )
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
+            _ = handler(event)
+        }
 
-        var hotKeyID = EventHotKeyID(
-            signature: OSType(0x4244_4D50), // "BDMP"
-            id: 1
-        )
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            handler(event) ? nil : event
+        }
 
-        RegisterEventHotKey(
-            UInt32(kVK_ANSI_D),
-            UInt32(controlKey | shiftKey),
-            hotKeyID,
-            GetApplicationEventTarget(),
-            0,
-            &hotKeyRef
-        )
+        // Prompt for accessibility permissions if not already granted
+        if !AXIsProcessTrusted() {
+            let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as CFDictionary
+            AXIsProcessTrustedWithOptions(options)
+        }
     }
 }
 
