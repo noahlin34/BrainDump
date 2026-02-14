@@ -6,6 +6,7 @@ struct CaptureView: View {
     @State private var text = ""
     @FocusState private var isFocused: Bool
     @State private var keyMonitor: Any?
+    @State private var holder = TextViewHolder()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,6 +18,7 @@ struct CaptureView: View {
                     .font(.body)
                     .focused($isFocused)
                     .scrollContentBackground(.hidden)
+                    .background(TextViewIntrospect(holder: holder))
 
                 if text.isEmpty {
                     Text("What's on your mind?")
@@ -44,6 +46,11 @@ struct CaptureView: View {
                 .keyboardShortcut(.return, modifiers: .command)
             }
             .padding(12)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .markdownInserted)) { notification in
+            if let tv = notification.object as? NSTextView, tv === holder.textView {
+                text = tv.string
+            }
         }
         .onAppear {
             isFocused = true
@@ -100,38 +107,23 @@ struct CaptureView: View {
     // MARK: - Markdown Helpers
 
     private func applyMarkdown(prefix: String, suffix: String) {
-        guard let textView = Self.findTextView() else { return }
-        let range = textView.selectedRange()
-        let selected = (textView.string as NSString).substring(with: range)
-        textView.insertText(prefix + selected + suffix, replacementRange: range)
-        textView.window?.makeFirstResponder(textView)
-    }
-
-    private static func findTextView() -> NSTextView? {
-        for window in NSApp.windows {
-            if let found = findTextView(in: window.contentView) {
-                return found
-            }
+        guard let tv = holder.textView else { return }
+        let range = tv.selectedRange()
+        let selected = (tv.string as NSString).substring(with: range)
+        if selected.isEmpty && !suffix.isEmpty {
+            tv.insertText(prefix + suffix, replacementRange: range)
+            tv.setSelectedRange(NSRange(location: range.location + prefix.count, length: 0))
+        } else {
+            tv.insertText(prefix + selected + suffix, replacementRange: range)
         }
-        return nil
-    }
-
-    private static func findTextView(in view: NSView?) -> NSTextView? {
-        guard let view else { return nil }
-        if let textView = view as? NSTextView, !textView.isFieldEditor {
-            return textView
-        }
-        for subview in view.subviews {
-            if let found = findTextView(in: subview) {
-                return found
-            }
-        }
-        return nil
+        text = tv.string
+        tv.window?.makeFirstResponder(tv)
     }
 
     // MARK: - Keyboard Shortcuts
 
     private func installKeyMonitor() {
+        let holder = self.holder
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
                   let chars = event.charactersIgnoringModifiers else { return event }
@@ -142,10 +134,16 @@ struct CaptureView: View {
             case "i": prefix = "_"; suffix = "_"
             default: return event
             }
-            guard let textView = Self.findTextView() else { return event }
-            let range = textView.selectedRange()
-            let selected = (textView.string as NSString).substring(with: range)
-            textView.insertText(prefix + selected + suffix, replacementRange: range)
+            guard let tv = holder.textView else { return event }
+            let range = tv.selectedRange()
+            let selected = (tv.string as NSString).substring(with: range)
+            if selected.isEmpty {
+                tv.insertText(prefix + suffix, replacementRange: range)
+                tv.setSelectedRange(NSRange(location: range.location + prefix.count, length: 0))
+            } else {
+                tv.insertText(prefix + selected + suffix, replacementRange: range)
+            }
+            NotificationCenter.default.post(name: .markdownInserted, object: tv)
             return nil
         }
     }
