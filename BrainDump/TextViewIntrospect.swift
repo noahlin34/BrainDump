@@ -5,42 +5,50 @@ class TextViewHolder {
     weak var textView: NSTextView?
 }
 
-struct TextViewIntrospect: NSViewRepresentable {
+struct MarkdownTextView: NSViewRepresentable {
+    @Binding var text: String
     let holder: TextViewHolder
 
-    func makeNSView(context: Context) -> NSView {
-        let view = IntrospectionView()
-        view.holder = holder
-        return view
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
-        (nsView as? IntrospectionView)?.holder = holder
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSTextView.scrollableTextView()
+        let textView = scrollView.documentView as! NSTextView
+        textView.font = .preferredFont(forTextStyle: .body)
+        textView.isRichText = false
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.allowsUndo = true
+        textView.drawsBackground = false
+        textView.delegate = context.coordinator
+        textView.string = text
+        scrollView.borderType = .noBorder
+        scrollView.drawsBackground = false
+        scrollView.hasVerticalScroller = true
+        holder.textView = textView
+        return scrollView
     }
 
-    class IntrospectionView: NSView {
-        var holder: TextViewHolder?
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? NSTextView else { return }
+        if textView.string != text {
+            textView.string = text
+        }
+        holder.textView = textView
+    }
 
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            guard window != nil else { return }
-            DispatchQueue.main.async { [weak self] in
-                guard let self, let window = self.window else { return }
-                self.holder?.textView = Self.findTextView(in: window.contentView)
-            }
+    class Coordinator: NSObject, NSTextViewDelegate {
+        var parent: MarkdownTextView
+
+        init(_ parent: MarkdownTextView) {
+            self.parent = parent
         }
 
-        static func findTextView(in view: NSView?) -> NSTextView? {
-            guard let view else { return nil }
-            if let tv = view as? NSTextView, !tv.isFieldEditor { return tv }
-            for sub in view.subviews {
-                if let found = findTextView(in: sub) { return found }
-            }
-            return nil
+        func textDidChange(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            parent.text = textView.string
         }
     }
-}
-
-extension NSNotification.Name {
-    static let markdownInserted = NSNotification.Name("MarkdownInserted")
 }

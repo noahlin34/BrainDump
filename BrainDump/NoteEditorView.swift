@@ -62,19 +62,11 @@ struct NoteEditorView: View {
             } else {
                 formattingToolbar
                 Divider()
-                TextEditor(text: $text)
-                    .font(.body)
-                    .scrollContentBackground(.hidden)
+                MarkdownTextView(text: $text, holder: holder)
                     .padding(16)
-                    .background(TextViewIntrospect(holder: holder))
                     .onChange(of: text) {
                         debounceSave()
                     }
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .markdownInserted)) { notification in
-            if let tv = notification.object as? NSTextView, tv === holder.textView {
-                text = tv.string
             }
         }
         .onAppear {
@@ -182,7 +174,6 @@ struct NoteEditorView: View {
         } else {
             tv.insertText(prefix + selected + suffix, replacementRange: range)
         }
-        text = tv.string
         tv.window?.makeFirstResponder(tv)
     }
 
@@ -209,7 +200,6 @@ struct NoteEditorView: View {
             } else {
                 tv.insertText(prefix + selected + suffix, replacementRange: range)
             }
-            NotificationCenter.default.post(name: .markdownInserted, object: tv)
             return nil
         }
     }

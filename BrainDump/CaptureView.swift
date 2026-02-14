@@ -4,7 +4,6 @@ import SwiftUI
 struct CaptureView: View {
     @Environment(NoteStore.self) private var noteStore
     @State private var text = ""
-    @FocusState private var isFocused: Bool
     @State private var keyMonitor: Any?
     @State private var holder = TextViewHolder()
 
@@ -14,11 +13,7 @@ struct CaptureView: View {
             Divider()
 
             ZStack(alignment: .topLeading) {
-                TextEditor(text: $text)
-                    .font(.body)
-                    .focused($isFocused)
-                    .scrollContentBackground(.hidden)
-                    .background(TextViewIntrospect(holder: holder))
+                MarkdownTextView(text: $text, holder: holder)
 
                 if text.isEmpty {
                     Text("What's on your mind?")
@@ -47,14 +42,11 @@ struct CaptureView: View {
             }
             .padding(12)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .markdownInserted)) { notification in
-            if let tv = notification.object as? NSTextView, tv === holder.textView {
-                text = tv.string
-            }
-        }
         .onAppear {
-            isFocused = true
             installKeyMonitor()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                holder.textView?.window?.makeFirstResponder(holder.textView)
+            }
         }
         .onDisappear {
             removeKeyMonitor()
@@ -116,7 +108,6 @@ struct CaptureView: View {
         } else {
             tv.insertText(prefix + selected + suffix, replacementRange: range)
         }
-        text = tv.string
         tv.window?.makeFirstResponder(tv)
     }
 
@@ -143,7 +134,6 @@ struct CaptureView: View {
             } else {
                 tv.insertText(prefix + selected + suffix, replacementRange: range)
             }
-            NotificationCenter.default.post(name: .markdownInserted, object: tv)
             return nil
         }
     }
