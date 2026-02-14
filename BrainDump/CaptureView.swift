@@ -4,27 +4,45 @@ import SwiftUI
 struct CaptureView: View {
     @Environment(NoteStore.self) private var noteStore
     @State private var text = ""
+    @State private var isPreviewMode: Bool = false
     @State private var keyMonitor: Any?
     @State private var holder = TextViewHolder()
 
     var body: some View {
         VStack(spacing: 0) {
-            formattingToolbar
+            HStack(spacing: 12) {
+                if !isPreviewMode {
+                    formattingToolbar
+                }
+                Spacer()
+                Button {
+                    isPreviewMode.toggle()
+                } label: {
+                    Image(systemName: isPreviewMode ? "pencil" : "eye")
+                }
+                .buttonStyle(.plain)
+                .help(isPreviewMode ? "Edit" : "Preview")
+                .padding(.trailing, 12)
+            }
             Divider()
 
-            ZStack(alignment: .topLeading) {
-                MarkdownTextView(text: $text, holder: holder)
+            if isPreviewMode {
+                markdownPreview
+            } else {
+                ZStack(alignment: .topLeading) {
+                    MarkdownTextView(text: $text, holder: holder)
 
-                if text.isEmpty {
-                    Text("What's on your mind?")
-                        .font(.body)
-                        .foregroundStyle(.tertiary)
-                        .padding(.leading, 5)
-                        .padding(.top, 1)
-                        .allowsHitTesting(false)
+                    if text.isEmpty {
+                        Text("What's on your mind?")
+                            .font(.body)
+                            .foregroundStyle(.tertiary)
+                            .padding(.leading, 5)
+                            .padding(.top, 1)
+                            .allowsHitTesting(false)
+                    }
                 }
+                .padding(16)
             }
-            .padding(16)
 
             Divider()
 
@@ -94,6 +112,46 @@ struct CaptureView: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 12)
         .padding(.vertical, 4)
+    }
+
+    // MARK: - Markdown Preview
+
+    private var markdownPreview: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(text.components(separatedBy: "\n").enumerated()), id: \.offset) { _, line in
+                    if line.isEmpty {
+                        Spacer().frame(height: 12)
+                    } else if line.hasPrefix("### ") {
+                        Text(String(line.dropFirst(4)))
+                            .font(.headline)
+                            .padding(.vertical, 2)
+                    } else if line.hasPrefix("## ") {
+                        Text(String(line.dropFirst(3)))
+                            .font(.title3.bold())
+                            .padding(.vertical, 3)
+                    } else if line.hasPrefix("# ") {
+                        Text(String(line.dropFirst(2)))
+                            .font(.title2.bold())
+                            .padding(.vertical, 4)
+                    } else {
+                        Group {
+                            if let attributed = try? AttributedString(markdown: line) {
+                                Text(attributed)
+                            } else {
+                                Text(line)
+                            }
+                        }
+                        .font(.body)
+                        .padding(.vertical, 1)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .textSelection(.enabled)
+        }
+        .frame(maxHeight: .infinity)
     }
 
     // MARK: - Markdown Helpers
