@@ -35,6 +35,14 @@ struct SavedNotesView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            Button {
+                                NSWorkspace.shared.activateFileViewerSelecting([note.fileURL])
+                            } label: {
+                                Label("Show in Finder", systemImage: "folder")
+                            }
+                            ShareLink(item: note.content, preview: SharePreview(firstLine(of: note.content)))
+                        }
                     }
                     .onDelete { indexSet in
                         for index in indexSet {
