@@ -38,12 +38,41 @@ class FloatingPanel: NSPanel {
         close()
     }
 
-    func showCentered() {
+    func showBelow(statusItem: NSStatusItem) {
+        guard let buttonWindow = statusItem.button?.window else {
+            showFallbackCentered()
+            return
+        }
+
+        let buttonFrame = buttonWindow.frame
+        // Center horizontally under the status item, panel top edge flush with menu bar bottom
+        let x = buttonFrame.midX - frame.width / 2
+        let y = buttonFrame.minY - frame.height
+        setFrameOrigin(clampToScreen(NSPoint(x: x, y: y)))
+        makeKeyAndOrderFront(nil)
+    }
+
+    private func showFallbackCentered() {
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.visibleFrame
         let x = screenFrame.midX - frame.width / 2
         let y = screenFrame.midY - frame.height / 2
         setFrameOrigin(NSPoint(x: x, y: y))
         makeKeyAndOrderFront(nil)
+    }
+
+    /// Keep the panel fully on-screen
+    private func clampToScreen(_ origin: NSPoint) -> NSPoint {
+        guard let screen = NSScreen.main else { return origin }
+        let visibleFrame = screen.visibleFrame
+        var x = origin.x
+        var y = origin.y
+
+        // Clamp horizontally
+        x = max(visibleFrame.minX, min(x, visibleFrame.maxX - frame.width))
+        // Clamp vertically (don't go below dock/visible area)
+        y = max(visibleFrame.minY, y)
+
+        return NSPoint(x: x, y: y)
     }
 }

@@ -89,7 +89,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if mode == .review {
             noteStore.refresh()
         }
-        panel.showCentered()
+        panel.showBelow(statusItem: statusItem)
         appState.isPanelVisible = true
         installClickOutsideMonitor()
     }
