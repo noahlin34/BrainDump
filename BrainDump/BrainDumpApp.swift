@@ -142,7 +142,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Prompt for accessibility permissions if not already granted
         if !AXIsProcessTrusted() {
-            let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as CFDictionary
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
             AXIsProcessTrustedWithOptions(options)
         }
     }

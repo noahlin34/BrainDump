@@ -130,9 +130,9 @@ struct TutorialView: View {
                 .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
 
                 Button {
-                    NSWorkspace.shared.open(
-                        URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
-                    )
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility") {
+                        NSWorkspace.shared.open(url)
+                    }
                 } label: {
                     Label("Open Settings", systemImage: "gear")
                 }

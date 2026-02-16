@@ -18,6 +18,7 @@ class FloatingPanel: NSPanel {
         isReleasedWhenClosed = false
         animationBehavior = .utilityWindow
         hidesOnDeactivate = false
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         standardWindowButton(.closeButton)?.isHidden = true
         standardWindowButton(.miniaturizeButton)?.isHidden = true
         standardWindowButton(.zoomButton)?.isHidden = true
