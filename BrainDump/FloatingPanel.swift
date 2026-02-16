@@ -5,7 +5,7 @@ class FloatingPanel: NSPanel {
     init(contentView: some View) {
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 500, height: 400),
-            styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
+            styleMask: [.nonactivatingPanel, .titled, .closable],
             backing: .buffered,
             defer: false
         )
@@ -26,8 +26,10 @@ class FloatingPanel: NSPanel {
         let hostingView = NSHostingView(rootView: contentView)
         self.contentView = hostingView
 
-        setContentSize(NSSize(width: 500, height: 400))
-        minSize = NSSize(width: 360, height: 300)
+        let size = NSSize(width: 500, height: 400)
+        setContentSize(size)
+        minSize = size
+        maxSize = size
     }
 
     override var canBecomeKey: Bool { true }
