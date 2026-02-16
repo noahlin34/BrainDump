@@ -1,6 +1,10 @@
 import AppKit
 import SwiftUI
 
+extension Notification.Name {
+    static let closePanelAfterSave = Notification.Name("closePanelAfterSave")
+}
+
 struct CaptureView: View {
     @Environment(NoteStore.self) private var noteStore
     @Environment(KeybindStore.self) private var keybindStore
@@ -8,6 +12,7 @@ struct CaptureView: View {
     @State private var isPreviewMode: Bool = false
     @State private var keyMonitor: Any?
     @State private var holder = TextViewHolder()
+    @State private var showSaveConfirmation = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -68,6 +73,21 @@ struct CaptureView: View {
         }
         .onDisappear {
             removeKeyMonitor()
+        }
+        .overlay {
+            if showSaveConfirmation {
+                VStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.green)
+                    Text("Saved!")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.ultraThinMaterial)
+                .transition(.opacity)
+            }
         }
     }
 
@@ -218,5 +238,10 @@ struct CaptureView: View {
         guard !trimmed.isEmpty else { return }
         noteStore.createNote(content: trimmed)
         text = ""
+        withAnimation { showSaveConfirmation = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            NotificationCenter.default.post(name: .closePanelAfterSave, object: nil)
+            showSaveConfirmation = false
+        }
     }
 }

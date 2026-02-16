@@ -17,6 +17,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: FloatingPanel!
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var clickOutsideMonitor: Any?
 
     let appState = AppState()
     let noteStore = NoteStore()
@@ -29,6 +30,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         if !UserDefaults.standard.bool(forKey: "hasSeenTutorial") {
             showPanel(mode: .tutorial)
+        }
+
+        NotificationCenter.default.addObserver(forName: Notification.Name("closePanelAfterSave"), object: nil, queue: .main) { [weak self] _ in
+            self?.panel.close()
+            self?.appState.isPanelVisible = false
         }
     }
 
@@ -85,6 +91,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         panel.showCentered()
         appState.isPanelVisible = true
+        installClickOutsideMonitor()
     }
 
     @objc private func openCapture() {
@@ -110,6 +117,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         showPanel(mode: .settings)
+    }
+
+    private func installClickOutsideMonitor() {
+        removeClickOutsideMonitor()
+        clickOutsideMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            guard let self, self.panel.isVisible else { return }
+            // Only auto-dismiss in capture mode
+            guard self.appState.currentMode == .capture else { return }
+            let mouseLocation = NSEvent.mouseLocation
+            let panelFrame = self.panel.frame
+            if !panelFrame.contains(mouseLocation) {
+                self.panel.close()
+                self.appState.isPanelVisible = false
+            }
+        }
+    }
+
+    private func removeClickOutsideMonitor() {
+        if let monitor = clickOutsideMonitor {
+            NSEvent.removeMonitor(monitor)
+            clickOutsideMonitor = nil
+        }
     }
 
     func toggleCapture() {
@@ -172,5 +201,6 @@ extension AppDelegate: NSMenuDelegate {
 extension AppDelegate: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         appState.isPanelVisible = false
+        removeClickOutsideMonitor()
     }
 }
